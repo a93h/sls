@@ -97,6 +97,14 @@ public class NetworkerManager {
         }
     }
 
+    public void launchAllUserInfo(){
+        for (NetApp napp : NetApp.values()) {
+            if( napp != NetApp.LISTENBRAINZ && napp != NetApp.LISTENBRAINZCUSTOM){
+                mSupportedNetApps.get(napp).launchUserInfo();
+            }
+        }
+    }
+
     public void launchHeart(NetApp napp) {
         mSupportedNetApps.get(napp).launchHeart();
     }

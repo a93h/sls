@@ -59,6 +59,8 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSocketFactory;
 
+import info.guardianproject.netcipher.NetCipher;
+
 /**
  * @author tgwizard 2009
  */
@@ -268,7 +270,7 @@ public class Handshaker extends NetRunnable {
                 e.printStackTrace();
                 throw new UnknownResponseException("Invalid Response");
             }
-        } else if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB && netApp == NetApp.LIBREFM) {
+        } else if (netApp == NetApp.LIBREFMCUSTOM && !settings.getSecureSocketLibreFm(netApp)) {
 
             String pwdMd5 = settings.getPwdMd5(netApp);
 
@@ -409,7 +411,7 @@ public class Handshaker extends NetRunnable {
 
                 SSLSocketFactory customSockets = new MySecureSSLSocketFactory(sslContext.getSocketFactory(), new MyHandshakeCompletedListener());
 
-                conn = (HttpsURLConnection) url.openConnection();
+                conn = NetCipher.getHttpsURLConnection(url);
                 conn.setSSLSocketFactory(customSockets);
                 /**
                  String[] strArr = customSockets.getDefaultCipherSuites();

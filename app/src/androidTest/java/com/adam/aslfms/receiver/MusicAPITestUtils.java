@@ -25,7 +25,7 @@ import android.content.Context;
 public class MusicAPITestUtils {
 
     public static MusicAPI getDummyMusicAPI() {
-        return new MusicAPI(0, "SLS Test", "com.testing.sls", null, false, true);
+        return new MusicAPI(0, "SLS Test", "com.testing.sls", null, false, 1);
     }
 
     public static void deleteDatabase(Context ctx) {

@@ -37,6 +37,7 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 
 import com.adam.aslfms.service.NetApp;
+import com.adam.aslfms.service.NetworkerManager;
 import com.adam.aslfms.util.AppSettings;
 import com.adam.aslfms.util.AuthStatus;
 import com.adam.aslfms.util.ScrobblesDatabase;
@@ -53,6 +54,7 @@ public class StatusActivity extends AppCompatActivity {
 
     private AppSettings settings;
     private ScrobblesDatabase mDb;
+    private NetworkerManager mNetManager;
 
     private static final String TAG = "StatusActivity";
 
@@ -78,6 +80,8 @@ public class StatusActivity extends AppCompatActivity {
 
         try {
             mDb.open();
+            mNetManager = new NetworkerManager(this, mDb);
+            mNetManager.launchAllUserInfo();
         } catch (SQLException e) {
             Log.e(TAG, "Cannot open database!");
             Log.e(TAG, e.getMessage());

@@ -59,6 +59,8 @@ import java.util.TreeMap;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 
+import info.guardianproject.netcipher.NetCipher;
+
 /**
  * @author tgwizard
  */
@@ -299,7 +301,7 @@ public class Scrobbler extends AbstractSubmitter {
 
                     MySecureSSLSocketFactory customSockets = new MySecureSSLSocketFactory(sslContext.getSocketFactory(), new MyHandshakeCompletedListener());
 
-                    conn = (HttpsURLConnection) url.openConnection();
+                    conn = NetCipher.getHttpsURLConnection(url);
                     conn.setSSLSocketFactory(customSockets);
 
                     // set Timeout and method
@@ -370,8 +372,7 @@ public class Scrobbler extends AbstractSubmitter {
                 }
             }
             // check if secure cipher for cloudflare on libre.fm is not available (older version of android) or the user is a developer with a custom destination.
-        } else if ((Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB && netApp == NetApp.LIBREFM) || (netApp == NetApp.LIBREFMCUSTOM && !settings.getSecureSocketLibreFm(netApp))) {
-
+        } else if (netApp == NetApp.LIBREFMCUSTOM && !settings.getSecureSocketLibreFm(netApp)) {
             URL url;
             HttpURLConnection conn = null;
             try {
@@ -519,7 +520,7 @@ public class Scrobbler extends AbstractSubmitter {
 
                 MySecureSSLSocketFactory customSockets = new MySecureSSLSocketFactory(sslContext.getSocketFactory(), new MyHandshakeCompletedListener());
 
-                conn = (HttpsURLConnection) url.openConnection();
+                conn = NetCipher.getHttpsURLConnection(url);
                 ((HttpsURLConnection) conn).setSSLSocketFactory(customSockets);
 
                 // Log.d(TAG,conn.toString());
@@ -555,9 +556,6 @@ public class Scrobbler extends AbstractSubmitter {
                 JSONObject jObject = new JSONObject(response);
                 if (jObject.has("scrobbles")) {
                     int scrobsIgnored = jObject.getJSONObject("scrobbles").getJSONObject("@attr").getInt("ignored");
-                    if (settings.isNowPlayingEnabled(pow)) {
-                        mNetManager.launchGetUserInfo(getNetApp());
-                    }
                     Log.i(TAG, "Scrobble success: " + netAppName + ": Ignored Count: " + Integer.toString(scrobsIgnored));
                 } else if (jObject.has("error")) {
                     int code = jObject.getInt("error");

@@ -58,6 +58,8 @@ import java.util.TreeMap;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 
+import info.guardianproject.netcipher.NetCipher;
+
 /**
  * @author tgwizard
  */
@@ -97,7 +99,7 @@ public class NPNotifier extends AbstractSubmitter {
             notifySubmissionStatusFailure(getContext().getString(
                     R.string.auth_just_error));
             Util.myNotify(mCtx, getNetApp().getName(),
-                    mCtx.getString(R.string.auth_bad_auth), 39201,  new Intent(mCtx, SettingsActivity.class));
+                    mCtx.getString(R.string.auth_bad_auth), 39201, new Intent(mCtx, SettingsActivity.class));
             ret = true;
         } catch (TemporaryFailureException e) {
             Log.i(TAG, "Tempfail: " + e.getMessage() + ": "
@@ -105,7 +107,7 @@ public class NPNotifier extends AbstractSubmitter {
             notifySubmissionStatusFailure(getContext().getString(
                     R.string.auth_network_error_retrying));
             ret = false;
-        } catch (AuthStatus.RetryLaterFailureException e){
+        } catch (AuthStatus.RetryLaterFailureException e) {
             Log.i(TAG, "Tempfail: " + e.getMessage() + ": "
                     + getNetApp().getName());
             notifyAuthStatusUpdate(AuthStatus.AUTHSTATUS_RETRYLATER_RATE_LIMIT_EXCEEDED);
@@ -121,7 +123,7 @@ public class NPNotifier extends AbstractSubmitter {
             // TODO: what??  notify user
             notifyAuthStatusUpdate(AuthStatus.AUTHSTATUS_CLIENTBANNED);
             Util.myNotify(mCtx, getNetApp().getName(),
-                    mCtx.getString(R.string.auth_client_banned), 39201,  new Intent(mCtx, SettingsActivity.class));
+                    mCtx.getString(R.string.auth_client_banned), 39201, new Intent(mCtx, SettingsActivity.class));
             e.getStackTrace();
             ret = true;
         } catch (AuthStatus.UnknownResponseException e) {
@@ -206,7 +208,7 @@ public class NPNotifier extends AbstractSubmitter {
 
                 int resCode = -1;
                 // Create the SSL connection
-                if (netApp == NetApp.LISTENBRAINZCUSTOM && ! settings.getSecureSocketListenbrainz(netApp)) {
+                if (netApp == NetApp.LISTENBRAINZCUSTOM && !settings.getSecureSocketListenbrainz(netApp)) {
                     insecConn = (HttpsURLConnection) url.openConnection();
 
                     // set Timeout and method
@@ -236,7 +238,7 @@ public class NPNotifier extends AbstractSubmitter {
 
                     MySecureSSLSocketFactory customSockets = new MySecureSSLSocketFactory(sslContext.getSocketFactory(), new MyHandshakeCompletedListener());
 
-                    conn = (HttpsURLConnection) url.openConnection();
+                    conn = NetCipher.getHttpsURLConnection(url);
                     conn.setSSLSocketFactory(customSockets);
 
                     // set Timeout and method
@@ -299,7 +301,7 @@ public class NPNotifier extends AbstractSubmitter {
                 }
             }
             // check if secure cipher for cloudflare on libre.fm is not available (older version of android) or the user is a developer with a custom destination.
-        } else if ((Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB && netApp == NetApp.LIBREFM) || (netApp == NetApp.LIBREFMCUSTOM && !settings.getSecureSocketLibreFm(netApp) )) {
+        } else if (netApp == NetApp.LIBREFMCUSTOM && !settings.getSecureSocketLibreFm(netApp)) {
             URL url;
             HttpURLConnection conn = null;
             try {
@@ -437,7 +439,7 @@ public class NPNotifier extends AbstractSubmitter {
 
                 MySecureSSLSocketFactory customSockets = new MySecureSSLSocketFactory(sslContext.getSocketFactory(), new MyHandshakeCompletedListener());
 
-                conn = (HttpsURLConnection) url.openConnection();
+                conn = NetCipher.getHttpsURLConnection(url);
                 ((HttpsURLConnection) conn).setSSLSocketFactory(customSockets);
 
                 conn.setReadTimeout(10000);
@@ -474,7 +476,7 @@ public class NPNotifier extends AbstractSubmitter {
                     Log.i(TAG, "Now Playing success: " + netAppName);
                 } else if (jObject.has("error")) {
                     int code = jObject.getInt("error");
-                    if (code == 26 || code == 10 ) {
+                    if (code == 26 || code == 10) {
                         Log.e(TAG, "Now playing failed: client banned: " + netApp.getName());
                         throw new AuthStatus.ClientBannedException("Now playing failed because of client banned");
                     } else if (code == 9) {

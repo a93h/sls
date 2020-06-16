@@ -30,13 +30,22 @@ import com.adam.aslfms.util.AuthStatus;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+
+import info.guardianproject.netcipher.NetCipher;
 
 /**
  * Created by Debugs on 7/9/2016.
@@ -99,7 +108,7 @@ public class UserInfo extends NetRunnable {
     }
 
     private String getAllTimeScrobbles() throws IOException, NullPointerException {
-        if (getNetApp() == NetApp.LISTENBRAINZ || getNetApp() == NetApp.LISTENBRAINZ) {
+        if (getNetApp() == NetApp.LISTENBRAINZ || getNetApp() == NetApp.LISTENBRAINZCUSTOM) {
             // TODO: Get total number of tracks in data base (make/wait for, pull request listenbrainz)
          /*   URL url;
             HttpsURLConnection conn = null;
@@ -111,7 +120,7 @@ public class UserInfo extends NetRunnable {
 
                 SSLSocketFactory customSockets = new MySecureSSLSocketFactory(sslContext.getSocketFactory(), new MyHandshakeCompletedListener());
 
-                conn = (HttpsURLConnection) url.openConnection();
+                conn = NetCipher.getHttpsURLConnection(url);
                 conn.setSSLSocketFactory(customSockets);
 
                 /*String[] strArr = customSockets.getDefaultCipherSuites();
@@ -158,25 +167,14 @@ public class UserInfo extends NetRunnable {
                     conn.disconnect();
                 }
             }*/
+            return "{}";
         } else {
             URL url;
-            HttpURLConnection conn = null;
+            HttpURLConnection insecConn = null;
+            HttpsURLConnection conn = null;
+            NetApp netApp = getNetApp();
             try {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.HONEYCOMB && getNetApp() == NetApp.LIBREFM) {
-                    url = new URL("http://libre.fm/2.0/");
-                } else {
-                    url = new URL(getNetApp().getWebserviceUrl(settings));
-                }
-                conn = (HttpURLConnection) url.openConnection();
-
-                // set Timeout and method
-                conn.setReadTimeout(7000);
-                conn.setConnectTimeout(7000);
-                conn.setRequestMethod("POST");
-                conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
-
-                conn.setDoInput(true);
-                conn.setDoOutput(true);
+                url = new URL(getNetApp().getWebserviceUrl(settings));
 
                 Map<String, Object> params = new LinkedHashMap<>();
                 params.put("method", "user.getInfo");
@@ -191,19 +189,62 @@ public class UserInfo extends NetRunnable {
                     postData.append('=');
                     postData.append(URLEncoder.encode(String.valueOf(param.getValue()), "UTF-8"));
                 }
-                byte[] postDataBytes = postData.toString().getBytes("UTF-8");
-                conn.setRequestProperty("Content-Length", String.valueOf(postDataBytes.length));
+                byte[] baseObj = postData.toString().getBytes("UTF-8");
 
-                conn.getOutputStream().write(postDataBytes);
                 //Log.i(TAG, params.toString());
 
-                conn.connect();
+                int resCode = -1;
+                // Create the SSL connection
+                if (netApp == NetApp.LIBREFMCUSTOM && !settings.getSecureSocketLibreFm(netApp)) {
+                    insecConn = (HttpsURLConnection) url.openConnection();
 
-                int resCode = conn.getResponseCode();
+                    insecConn.setReadTimeout(10000);
+                    insecConn.setConnectTimeout(10000);
+                    insecConn.setRequestMethod("POST");
+                    insecConn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                    insecConn.setRequestProperty("Content-Length", String.valueOf(baseObj.length));
+                    insecConn.setDoOutput(true);
+                    insecConn.setDoInput(true);
+
+                    DataOutputStream outStream = new DataOutputStream(insecConn.getOutputStream());
+                    Log.d(TAG, baseObj.toString());
+                    outStream.write(baseObj);
+                    outStream.flush();
+                    outStream.close();
+
+                    insecConn.connect();
+                    resCode = insecConn.getResponseCode();
+                } else {
+                    SSLContext sslContext = SSLContext.getInstance("TLS");
+                    sslContext.init(null, null, new java.security.SecureRandom());
+
+                    MySecureSSLSocketFactory customSockets = new MySecureSSLSocketFactory(sslContext.getSocketFactory(), new MyHandshakeCompletedListener());
+
+                    conn = NetCipher.getHttpsURLConnection(url);
+                    conn.setSSLSocketFactory(customSockets);
+
+                    conn.setReadTimeout(10000);
+                    conn.setConnectTimeout(10000);
+                    conn.setRequestMethod("POST");
+                    conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+                    conn.setRequestProperty("Content-Length", String.valueOf(baseObj.length));
+                    conn.setDoOutput(true);
+                    conn.setDoInput(true);
+
+                    DataOutputStream outStream = new DataOutputStream(conn.getOutputStream());
+                    Log.d(TAG, baseObj.toString());
+                    outStream.write(baseObj);
+                    outStream.flush();
+                    outStream.close();
+
+                    conn.connect();
+                    resCode = conn.getResponseCode();
+                }
+
                 Log.d(TAG, "Response code: " + this.getNetApp().getName() + ": " + resCode);
                 BufferedReader r;
                 if (resCode == -1) {
-                    return "";
+                    return "{}";
                 } else if (resCode == 200) {
                     r = new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 } else {
@@ -217,7 +258,7 @@ public class UserInfo extends NetRunnable {
                 String response = stringBuilder.toString();
                 Log.d(TAG, response);
                 return response;
-            } catch (IOException | NullPointerException e) {
+            } catch ( NoSuchAlgorithmException | KeyManagementException | IOException | NullPointerException e) {
                 e.printStackTrace();
             } finally {
                 if (conn != null) {
@@ -225,7 +266,7 @@ public class UserInfo extends NetRunnable {
                 }
             }
         }
-        return "";
+        return "{}";
     }
 }
 

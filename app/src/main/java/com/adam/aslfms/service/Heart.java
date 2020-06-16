@@ -69,10 +69,7 @@ public class Heart extends NetRunnable {
 
     public final void run() {
 
-
         settings = new AppSettings(mCtx);
-// can't heart track
-
 
         String[][] strings = db.fetchHeartsArray(napp);
 
@@ -91,7 +88,6 @@ public class Heart extends NetRunnable {
 
             try {
                 String response = postHeartTrack(s, settings.rcnvK(settings.getAPIkey()), signature, settings.getSessionKey(getNetApp()));
-                // TODO: ascertain if string is Json
                 if (response.equals("okSuccess")) {
                     Log.d(TAG, "Successful heart track: " + getNetApp().getName());
                     submitted = true;
